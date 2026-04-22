@@ -1,0 +1,62 @@
+# ── Dependencies ──────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ── Environment variables ──────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+!.env.example
+
+# ── Next.js ───────────────────────────────────────────────
+frontend/.next/
+frontend/out/
+frontend/.vercel/
+frontend/next-env.d.ts
+
+# ── Express / Node build output ───────────────────────────
+backend/dist/
+backend/build/
+
+# ── Prisma ────────────────────────────────────────────────
+prisma/*.db
+prisma/*.db-journal
+prisma/generated/
+backend/node_modules/.prisma/
+
+# ── TypeScript ────────────────────────────────────────────
+*.tsbuildinfo
+
+# ── Testing ───────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── Logs ──────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── OS / Editor ───────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+!.vscode/extensions.json   
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ── Docker ────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── Misc ──────────────────────────────────────────────────
+*.pem
+.turbo/
+.cache/
+tmp/
