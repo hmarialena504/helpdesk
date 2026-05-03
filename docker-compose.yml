@@ -1,0 +1,65 @@
+version: '3.9'
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"          # Expose so you can connect with TablePlus/DBeaver
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Express backend ────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+      - "5555:5555" 
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PORT: ${PORT}
+      NODE_ENV: ${NODE_ENV}
+      JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - ./backend:/app                  # Live reload — maps local files into container
+      - /app/node_modules               # Prevent host node_modules overwriting container's
+    depends_on:
+      postgres:
+        condition: service_healthy      # Wait for Postgres healthcheck to pass
+    command: npm run dev
+
+  # ── Next.js frontend ───────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      WATCHPACK_POLLING: "true"         # Required for hot reload inside Docker on some systems
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next                      # Prevent .next build cache conflicts
+    depends_on:
+      - backend
+    command: npm run dev
+
+volumes:
+  postgres_data:                        # Named volume — persists DB data between restarts
