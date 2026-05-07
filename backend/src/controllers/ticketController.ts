@@ -1,5 +1,10 @@
 import { Request, Response, NextFunction } from 'express'
-import { TicketStatus, TicketPriority } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
+import { $Enums } from '@prisma/client'
+const TicketStatus = $Enums.TicketStatus
+const TicketPriority = $Enums.TicketPriority
+type TicketStatus = $Enums.TicketStatus
+type TicketPriority = $Enums.TicketPriority
 import prisma from '../lib/prisma'
 import { AppError } from '../middleware/errorHandler'
 
