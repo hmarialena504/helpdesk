@@ -33,6 +33,7 @@ services:
       PORT: ${PORT}
       NODE_ENV: ${NODE_ENV}
       JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
     volumes:
       - ./backend:/app                  # Live reload — maps local files into container
       - /app/node_modules               # Prevent host node_modules overwriting container's

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { AppError } from './errorHandler'
+import { verifyToken } from '../lib/jwt'
 import prisma from '../lib/prisma'
 
 export const authenticate = async (
@@ -8,8 +9,6 @@ export const authenticate = async (
   next: NextFunction,
 ) => {
   try {
-    // Get token from Authorization header
-    // Header format: "Bearer eyJhbGc..."
     const authHeader = req.headers.authorization
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -18,10 +17,13 @@ export const authenticate = async (
 
     const token = authHeader.split(' ')[1]
 
-    // For now we use a simple approach — the token IS the user ID
-    // In the next step we will replace this with proper JWT verification
+    // Verify the JWT — throws if invalid or expired
+    const payload = verifyToken(token)
+
+    // Fetch fresh user data from database
+    // This ensures the token is still valid even if the user was deleted
     const user = await prisma.user.findUnique({
-      where: { id: token },
+      where: { id: payload.userId },
       select: {
         id: true,
         email: true,
@@ -33,19 +35,26 @@ export const authenticate = async (
     })
 
     if (!user) {
-      throw new AppError('Invalid token', 401)
+      throw new AppError('User no longer exists', 401)
     }
 
-    // Attach user to request so route handlers can access it
     req.user = user
     next()
 
   } catch (err) {
+    // Handle JWT-specific errors with clear messages
+    if (err instanceof Error) {
+      if (err.name === 'JsonWebTokenError') {
+        return next(new AppError('Invalid token', 401))
+      }
+      if (err.name === 'TokenExpiredError') {
+        return next(new AppError('Token expired', 401))
+      }
+    }
     next(err)
   }
 }
 
-// Middleware factory that checks if the user has one of the allowed roles
 export const requireRole = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {

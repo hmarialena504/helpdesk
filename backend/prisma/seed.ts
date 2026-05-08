@@ -1,11 +1,9 @@
-import { PrismaClient, Role, TicketStatus, TicketPriority } from '@prisma/client';
-import { createHash } from 'crypto';
+import { PrismaClient, Role, TicketStatus, TicketPriority } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient();
 
-// Simple hash for dev — use bcrypt in production
-const hashPassword = (password: string) =>
-  createHash('sha256').update(password).digest('hex');
+const hashPassword = async (password: string) => bcrypt.hash(password, 12)
 
 async function main() {
   console.log('🌱 Seeding database...');
@@ -13,33 +11,33 @@ async function main() {
   // ── Users ───────────────────────────────────────────────
   const admin = await prisma.user.upsert({
     where: { email: 'admin@helpdesk.com' },
-    update: {},
+    update: { password: await hashPassword('password123') },
     create: {
       email: 'admin@helpdesk.com',
       name: 'Admin User',
-      password: hashPassword('password123'),
+      password: await hashPassword('password123'),
       role: Role.ADMIN,
     },
   });
 
   const agent = await prisma.user.upsert({
     where: { email: 'agent@helpdesk.com' },
-    update: {},
+    update: { password: await hashPassword('password123') },
     create: {
       email: 'agent@helpdesk.com',
       name: 'Support Agent',
-      password: hashPassword('password123'),
+      password: await hashPassword('password123'),
       role: Role.AGENT,
     },
   });
 
   const customer = await prisma.user.upsert({
     where: { email: 'customer@helpdesk.com' },
-    update: {},
+    update: { password: await hashPassword('password123') },
     create: {
       email: 'customer@helpdesk.com',
       name: 'Jane Customer',
-      password: hashPassword('password123'),
+      password: await hashPassword('password123'),
       role: Role.CUSTOMER,
     },
   });

@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import dotenv from 'dotenv'
 import { errorHandler } from './middleware/errorHandler'
 import ticketRoutes from './routes/ticketRoutes'
+import authRoutes from './routes/authRoutes'
 
 dotenv.config()
 
@@ -28,6 +29,7 @@ app.get('/health', (req, res) => {
   })
 })
 
+app.use('/api/auth', authRoutes)
 app.use('/api/tickets', ticketRoutes)
 
 // ── 404 handler ────────────────────────────────────────────
