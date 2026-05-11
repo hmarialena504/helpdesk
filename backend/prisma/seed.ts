@@ -5,39 +5,41 @@ const prisma = new PrismaClient();
 
 const hashPassword = async (password: string) => bcrypt.hash(password, 12)
 
+const DEFAULT_PASSWORD = 'Password123!'
+
 async function main() {
   console.log('🌱 Seeding database...');
 
   // ── Users ───────────────────────────────────────────────
   const admin = await prisma.user.upsert({
     where: { email: 'admin@helpdesk.com' },
-    update: { password: await hashPassword('password123') },
+    update: { password: await hashPassword(DEFAULT_PASSWORD) },
     create: {
       email: 'admin@helpdesk.com',
       name: 'Admin User',
-      password: await hashPassword('password123'),
+      password: await hashPassword(DEFAULT_PASSWORD),
       role: Role.ADMIN,
     },
   });
 
   const agent = await prisma.user.upsert({
     where: { email: 'agent@helpdesk.com' },
-    update: { password: await hashPassword('password123') },
+    update: { password: await hashPassword(DEFAULT_PASSWORD) },
     create: {
       email: 'agent@helpdesk.com',
       name: 'Support Agent',
-      password: await hashPassword('password123'),
+      password: await hashPassword(DEFAULT_PASSWORD),
       role: Role.AGENT,
     },
   });
 
   const customer = await prisma.user.upsert({
     where: { email: 'customer@helpdesk.com' },
-    update: { password: await hashPassword('password123') },
+    update: { password: await hashPassword(DEFAULT_PASSWORD) },
     create: {
       email: 'customer@helpdesk.com',
       name: 'Jane Customer',
-      password: await hashPassword('password123'),
+      password: await hashPassword(DEFAULT_PASSWORD),
       role: Role.CUSTOMER,
     },
   });

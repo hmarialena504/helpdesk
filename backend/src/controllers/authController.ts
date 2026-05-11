@@ -22,15 +22,15 @@ export const register = async (
       throw new AppError('Password must be at least 8 characters', 400)
     }
 
-    // if (!/[A-Z]/.test(password)) {
-    //   throw new AppError('Password must contain at least one capital letter', 400)
-    // }
-    // if (!/[0-9]/.test(password)) {
-    //   throw new AppError('Password must contain at least one number', 400)
-    // }
-    // if (!/[!@#$%^&*]/.test(password)) {
-    //   throw new AppError('Password must contain at least one special character', 400)
-    // }
+    if (!/[A-Z]/.test(password)) {
+      throw new AppError('Password must contain at least one capital letter', 400)
+    }
+    if (!/[0-9]/.test(password)) {
+      throw new AppError('Password must contain at least one number', 400)
+    }
+    if (!/[!@#$%^&*]/.test(password)) {
+      throw new AppError('Password must contain at least one special character', 400)
+    }
 
     // Check if email is already taken
     const existing = await prisma.user.findUnique({ where: { email } })
