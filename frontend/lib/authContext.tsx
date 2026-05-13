@@ -10,7 +10,6 @@ import {
 import Cookies from 'js-cookie'
 import api from './api'
 
-// The shape of a user object
 interface User {
   id: string
   email: string
@@ -20,7 +19,6 @@ interface User {
   updatedAt: string
 }
 
-// The shape of what the context provides to components
 interface AuthContextType {
   user: User | null
   token: string | null
@@ -32,37 +30,46 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-// The provider wraps the entire app and manages auth state
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Initialise token directly from cookie — no setState needed in effect
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
+  const [token, setToken] = useState<string | null>(
+    () => Cookies.get('token') ?? null
+  )
   const [isLoading, setIsLoading] = useState(true)
 
-  // On first load check if a token already exists in cookies
-  // If it does, fetch the current user to restore the session
   useEffect(() => {
-    const savedToken = Cookies.get('token')
-    if (savedToken) {
-      setToken(savedToken)
-      api.get('/api/auth/me')
-        .then((res) => setUser(res.data.data))
-        .catch(() => {
-          // Token is invalid or expired — clear everything
-          Cookies.remove('token')
-          setToken(null)
-        })
-        .finally(() => setIsLoading(false))
-    } else {
-      setIsLoading(false)
+    if (!token) {
+        // No token — nothing to do, just mark loading as done
+        // Use a microtask to avoid the synchronous setState warning
+        Promise.resolve().then(() => setIsLoading(false))
+        return
     }
-  }, [])
+
+    let cancelled = false
+
+    api.get('/api/auth/me')
+        .then((res) => {
+        if (!cancelled) setUser(res.data.data)
+        })
+        .catch(() => {
+        if (!cancelled) {
+            Cookies.remove('token')
+            setToken(null)
+        }
+        })
+        .finally(() => {
+        if (!cancelled) setIsLoading(false)
+        })
+
+    return () => {
+        cancelled = true
+    }
+  }, [token])
 
   const login = async (email: string, password: string) => {
     const res = await api.post('/api/auth/login', { email, password })
     const { user, token } = res.data.data
-
-    // Store token in a cookie — persists across page refreshes
-    // expires: 7 matches the JWT expiry set in the backend
     Cookies.set('token', token, { expires: 7, sameSite: 'strict' })
     setToken(token)
     setUser(user)
@@ -71,7 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (email: string, name: string, password: string) => {
     const res = await api.post('/api/auth/register', { email, name, password })
     const { user, token } = res.data.data
-
     Cookies.set('token', token, { expires: 7, sameSite: 'strict' })
     setToken(token)
     setUser(user)
@@ -91,7 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
-// Custom hook — components call useAuth() instead of useContext(AuthContext)
 export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) {
