@@ -29,6 +29,7 @@ export const authenticate = async (
         email: true,
         name: true,
         role: true,
+        isActive: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -36,6 +37,11 @@ export const authenticate = async (
 
     if (!user) {
       throw new AppError('User no longer exists', 401)
+    }
+
+    // Block deactivated users from accessing the API
+    if (!user.isActive) {
+      throw new AppError('Account has been deactivated', 403)
     }
 
     req.user = user
