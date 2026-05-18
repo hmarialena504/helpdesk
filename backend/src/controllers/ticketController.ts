@@ -7,6 +7,7 @@ type TicketStatus = $Enums.TicketStatus
 type TicketPriority = $Enums.TicketPriority
 import prisma from '../lib/prisma'
 import { AppError } from '../middleware/errorHandler'
+import { getIO } from '../lib/socket'
 
 // GET /api/tickets
 export const getTickets = async (
@@ -155,6 +156,13 @@ export const createTicket = async (
       },
     })
 
+    // Notify all clients watching the ticket list
+    try {
+      getIO().to('tickets-list').emit('ticket-created', { data: ticket })
+    } catch {
+      // Socket.IO might not be initialised in tests — fail silently
+    }
+
     res.status(201).json({ data: ticket })
   } catch (err) {
     next(err)
@@ -200,8 +208,14 @@ export const updateTicket = async (
         createdBy: { select: { id: true, name: true, email: true } },
         assignedTo: { select: { id: true, name: true, email: true } },
         team: { select: { id: true, name: true } },
+        tags: { include: { tag: true } },
       },
     })
+
+    // Notify all clients watching this specific ticket
+    try {
+      getIO().to(`ticket:${id}`).emit('ticket-updated', { data: ticket })
+    } catch {}
 
     res.json({ data: ticket })
   } catch (err) {
@@ -258,6 +272,11 @@ export const addComment = async (
         },
       },
     })
+
+    // Notify all clients watching this ticket
+    try {
+      getIO().to(`ticket:${id}`).emit('comment-added', { data: comment })
+    } catch {}
 
     res.status(201).json({ data: comment })
   } catch (err) {

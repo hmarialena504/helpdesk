@@ -14,6 +14,7 @@ import {
 import { useAuth } from '@/lib/authContext'
 import StatusBadge from '@/components/ui/StatusBadge'
 import PriorityBadge from '@/components/ui/PriorityBadge'
+import { useSocket } from '@/lib/useSocket'
 
 export default function TicketDetailPage() {
   const { id } = useParams() as { id: string }
@@ -26,6 +27,8 @@ export default function TicketDetailPage() {
   const [isInternal, setIsInternal] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const { socket } = useSocket()
+  const [viewerCount, setViewerCount] = useState(0)
 
   useEffect(() => {
     const fetchTicket = async () => {
@@ -41,6 +44,44 @@ export default function TicketDetailPage() {
     }
     fetchTicket()
   }, [id])
+
+  // Set up real-time listeners for this ticket
+  useEffect(() => {
+    if (!socket || !id) return
+
+    // Join this ticket's room
+    socket.emit('join-ticket', id)
+
+    // Listen for status/field updates
+    socket.on('ticket-updated', (payload: { data: Ticket }) => {
+      setTicket(payload.data)
+    })
+
+    // Listen for new comments
+    socket.on('comment-added', (payload: { data: Comment }) => {
+      setComments((prev) => {
+        // Prevent duplicate comments if we added it ourselves
+        const exists = prev.some((c) => c.id === payload.data.id)
+        if (exists) return prev
+        return [...prev, payload.data]
+      })
+    })
+
+    // Listen for viewer count updates
+    socket.on('viewer-count', (payload: { ticketId: string; count: number }) => {
+      if (payload.ticketId === id) {
+        setViewerCount(payload.count)
+      }
+    })
+
+    // Leave the room when navigating away
+    return () => {
+      socket.emit('leave-ticket', id)
+      socket.off('ticket-updated')
+      socket.off('comment-added')
+      socket.off('viewer-count')
+    }
+  }, [socket, id])
 
   const handleStatusChange = async (newStatus: string) => {
     if (!ticket) return
@@ -58,8 +99,8 @@ export default function TicketDetailPage() {
     if (!commentBody.trim()) return
     setIsSubmitting(true)
     try {
-      const res = await addComment(id, { body: commentBody, isInternal })
-      setComments((prev) => [...prev, res.data])
+      await addComment(id, { body: commentBody, isInternal })
+      // Don't update state here — the socket 'comment-added' event handles it
       setCommentBody('')
       setIsInternal(false)
     } finally {
@@ -122,6 +163,19 @@ export default function TicketDetailPage() {
                 <h1 className="text-xl font-bold text-gray-900">
                   {ticket.title}
                 </h1>
+                {viewerCount > 1 && (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-2">
+                    <div className="flex -space-x-1">
+                      {Array.from({ length: Math.min(viewerCount, 3) }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-5 h-5 bg-blue-100 border-2 border-white rounded-full"
+                        />
+                      ))}
+                    </div>
+                    <span>{viewerCount} people viewing this ticket</span>
+                  </div>
+                )}
                 <p className="text-xs text-gray-400 mt-1">
                   #{ticket.id.slice(-8)} · Created {formatDate(ticket.createdAt)} by {ticket.createdBy.name}
                 </p>
@@ -286,13 +340,13 @@ export default function TicketDetailPage() {
           </div>
 
           {/* Tags */}
-          {ticket.tags.length > 0 && (
+          {(ticket.tags?.length ?? 0) > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
                 Tags
               </h3>
               <div className="flex flex-wrap gap-1.5">
-                {ticket.tags.map(({ tag }) => (
+                {ticket.tags?.map(({ tag }) => (
                   <span
                     key={tag.id}
                     className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-white"

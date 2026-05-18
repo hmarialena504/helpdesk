@@ -1,4 +1,5 @@
 import express from 'express'
+import { createServer } from 'http'
 import cors from 'cors'
 import helmet from 'helmet'
 import dotenv from 'dotenv'
@@ -6,11 +7,19 @@ import { errorHandler } from './middleware/errorHandler'
 import ticketRoutes from './routes/ticketRoutes'
 import authRoutes from './routes/authRoutes'
 import userRoutes from './routes/userRoutes'
+import { initSocket } from './lib/socket'
 
 dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 4000
+
+// Create HTTP server manually so Socket.IO can attach to it
+// Previously Express managed this internally with app.listen()
+const httpServer = createServer(app)
+
+// Initialise Socket.IO on the HTTP server
+initSocket(httpServer)
 
 // ── Middleware ─────────────────────────────────────────────
 app.use(helmet())
@@ -43,8 +52,9 @@ app.use((req, res) => {
 app.use(errorHandler)
 
 // ── Start server ───────────────────────────────────────────
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`)
+  console.log(`⚡ Socket.IO ready`)
   console.log(`📋 Environment: ${process.env.NODE_ENV}`)
 })
 

@@ -7,6 +7,7 @@ import { getTickets, Ticket } from '@/lib/ticketService'
 import StatusBadge from '@/components/ui/StatusBadge'
 import PriorityBadge from '@/components/ui/PriorityBadge'
 import { useAuth } from '@/lib/authContext'
+import { useSocket } from '@/lib/useSocket'
 
 const STATUS_OPTIONS = ['', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
 const PRIORITY_OPTIONS = ['', 'LOW', 'MEDIUM', 'HIGH', 'URGENT']
@@ -23,6 +24,8 @@ export default function TicketsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const [retryCount, setRetryCount] = useState(0)
+  const { socket, isConnected } = useSocket()
+  const [newTicketAlert, setNewTicketAlert] = useState(false)
 
   useEffect(() => {
     // Reset to page 1 when filters change
@@ -52,6 +55,24 @@ export default function TicketsPage() {
     fetchData()
   }, [statusFilter, priorityFilter, page, retryCount])
 
+  // Join the tickets-list room for new ticket notifications
+  useEffect(() => {
+    if (!socket) return
+
+    socket.emit('join-tickets-list')
+
+    socket.on('ticket-created', () => {
+      // Show a notification rather than auto-refreshing
+      // which would be jarring if the user is mid-interaction
+      setNewTicketAlert(true)
+    })
+
+    return () => {
+      socket.emit('leave-tickets-list')
+      socket.off('ticket-created')
+    }
+  }, [socket])
+
   // Client-side search filter on already-fetched tickets
   const filteredTickets = tickets.filter(
     (ticket) =>
@@ -79,6 +100,13 @@ export default function TicketsPage() {
             {total} ticket{total !== 1 ? 's' : ''} total
           </p>
         </div>
+        {/* Real-time connection indicator */}
+        <div className="flex items-center gap-1.5">
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
+          <span className="text-xs text-gray-400 hidden sm:inline">
+            {isConnected ? 'Live' : 'Offline'}
+          </span>
+        </div>
         {/* Only customers and agents can create tickets */}
         <Link
           href="/tickets/new"
@@ -88,6 +116,24 @@ export default function TicketsPage() {
           New Ticket
         </Link>
       </div>
+
+      {/* New ticket notification */}
+      {newTicketAlert && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+          <p className="text-sm text-blue-700">
+            A new ticket has been created.
+          </p>
+          <button
+            onClick={() => {
+              setNewTicketAlert(false)
+              setPage(1)
+            }}
+            className="text-sm font-medium text-blue-700 hover:underline"
+          >
+            Refresh list
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4 flex flex-wrap gap-3">
