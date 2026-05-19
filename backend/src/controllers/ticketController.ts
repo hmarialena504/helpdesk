@@ -8,6 +8,12 @@ type TicketPriority = $Enums.TicketPriority
 import prisma from '../lib/prisma'
 import { AppError } from '../middleware/errorHandler'
 import { getIO } from '../lib/socket'
+import {
+  sendTicketCreatedEmail,
+  sendTicketAssignedEmail,
+  sendTicketResolvedEmail,
+  sendNewCommentEmail,
+} from '../lib/email'
 
 // GET /api/tickets
 export const getTickets = async (
@@ -163,6 +169,28 @@ export const createTicket = async (
       // Socket.IO might not be initialised in tests — fail silently
     }
 
+    try {
+      const creator = await prisma.user.findUnique({
+        where: { id: ticket.createdById },
+        select: { email: true, name: true },
+      })
+      if (creator) {
+        sendTicketCreatedEmail({
+          to: creator.email,
+          customerName: creator.name,
+          ticket: {
+            id: ticket.id,
+            title: ticket.title,
+            status: ticket.status,
+            priority: ticket.priority,
+            description: ticket.description,
+          },
+        })
+      }
+    } catch (err) {
+      console.error('Failed to send ticket created email:', err)
+    }
+
     res.status(201).json({ data: ticket })
   } catch (err) {
     next(err)
@@ -216,6 +244,52 @@ export const updateTicket = async (
     try {
       getIO().to(`ticket:${id}`).emit('ticket-updated', { data: ticket })
     } catch {}
+
+    // Send emails for significant status changes
+    try {
+      // Notify customer when ticket is resolved
+      if (status === 'RESOLVED') {
+        const customer = await prisma.user.findUnique({
+          where: { id: ticket.createdById },
+          select: { email: true, name: true },
+        })
+        if (customer) {
+          sendTicketResolvedEmail({
+            to: customer.email,
+            customerName: customer.name,
+            ticket: {
+              id: ticket.id,
+              title: ticket.title,
+              status: ticket.status,
+              priority: ticket.priority,
+            },
+          })
+        }
+      }
+
+      // Notify agent when ticket is assigned to them
+      if (assignedToId && assignedToId !== ticket.assignedToId) {
+        const agent = await prisma.user.findUnique({
+          where: { id: assignedToId },
+          select: { email: true, name: true },
+        })
+        if (agent && req.user) {
+          sendTicketAssignedEmail({
+            to: agent.email,
+            agentName: agent.name,
+            ticket: {
+              id: ticket.id,
+              title: ticket.title,
+              status: ticket.status,
+              priority: ticket.priority,
+            },
+            assignedBy: req.user.name,
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Failed to send update email:', err)
+    }
 
     res.json({ data: ticket })
   } catch (err) {
@@ -277,6 +351,37 @@ export const addComment = async (
     try {
       getIO().to(`ticket:${id}`).emit('comment-added', { data: comment })
     } catch {}
+
+    // Email the ticket creator about the new comment
+    // but only if they didn't write the comment themselves
+    // and only for public comments
+    try {
+      if (!isInternal) {
+        const fullTicket = await prisma.ticket.findUnique({
+          where: { id: id },
+          include: {
+            createdBy: { select: { id: true, email: true, name: true } },
+          },
+        })
+
+        if (fullTicket && fullTicket.createdBy.id !== req.user!.id) {
+          sendNewCommentEmail({
+            to: fullTicket.createdBy.email,
+            recipientName: fullTicket.createdBy.name,
+            authorName: req.user!.name,
+            ticket: {
+              id: fullTicket.id,
+              title: fullTicket.title,
+              status: fullTicket.status,
+              priority: fullTicket.priority,
+            },
+            commentBody: body,
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Failed to send comment email:', err)
+    }
 
     res.status(201).json({ data: comment })
   } catch (err) {
