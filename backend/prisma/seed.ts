@@ -118,6 +118,33 @@ async function main() {
     },
   });
 
+  // Add more tickets with variety for better reporting data
+  const statuses = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const
+  const priorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const
+
+  for (let i = 0; i < 20; i++) {
+    const status = statuses[i % statuses.length]
+    const priority = priorities[i % priorities.length]
+    const daysAgo = Math.floor(Math.random() * 30)
+    const createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000)
+    const resolvedAt = status === 'RESOLVED'
+      ? new Date(createdAt.getTime() + Math.random() * 48 * 60 * 60 * 1000)
+      : null
+
+    await prisma.ticket.create({
+      data: {
+        title: `Sample ticket ${i + 4}`,
+        description: `This is sample ticket number ${i + 4} created for reporting data.`,
+        status,
+        priority,
+        createdAt,
+        resolvedAt,
+        createdById: customer.id,
+        assignedToId: i % 2 === 0 ? agent.id : null,
+      },
+    })
+  }
+
   console.log('✅ Seed complete');
   console.log(`   Users:   ${admin.email}, ${agent.email}, ${customer.email}`);
   console.log(`   Team:    ${team.name}`);

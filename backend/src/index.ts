@@ -7,6 +7,7 @@ import { errorHandler } from './middleware/errorHandler'
 import ticketRoutes from './routes/ticketRoutes'
 import authRoutes from './routes/authRoutes'
 import userRoutes from './routes/userRoutes'
+import reportsRoutes from './routes/reportsRoutes'
 import { initSocket } from './lib/socket'
 
 dotenv.config()
@@ -42,6 +43,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/tickets', ticketRoutes)
 app.use('/api/users', userRoutes) 
+app.use('/api/reports', reportsRoutes)
 
 // ── 404 handler ────────────────────────────────────────────
 app.use((req, res) => {
