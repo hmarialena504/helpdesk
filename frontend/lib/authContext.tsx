@@ -70,7 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const res = await api.post('/api/auth/login', { email, password })
     const { user, token } = res.data.data
-    Cookies.set('token', token, { expires: 7, sameSite: 'strict' })
+    console.log('Token received:', token ? 'yes' : 'no')
+    Cookies.set('token', token, { expires: 7, sameSite: 'lax' })
     setToken(token)
     setUser(user)
   }
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (email: string, name: string, password: string) => {
     const res = await api.post('/api/auth/register', { email, name, password })
     const { user, token } = res.data.data
-    Cookies.set('token', token, { expires: 7, sameSite: 'strict' })
+    Cookies.set('token', token, { expires: 7, sameSite: 'lax' })
     setToken(token)
     setUser(user)
   }
