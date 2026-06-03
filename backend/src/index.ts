@@ -11,6 +11,7 @@ import reportsRoutes from './routes/reportsRoutes'
 import { initSocket } from './lib/socket'
 import { setupStorage } from './lib/setupStorage'
 import attachmentRoutes from './routes/attachmentRoutes'
+import settingsRoutes from './routes/settingsRoutes'
 
 dotenv.config()
 
@@ -50,6 +51,7 @@ app.use('/api/tickets', attachmentRoutes)
 app.use('/api/tickets', ticketRoutes)
 app.use('/api/users', userRoutes) 
 app.use('/api/reports', reportsRoutes)
+app.use('/api/settings', settingsRoutes) 
 
 // ── 404 handler ────────────────────────────────────────────
 app.use((req, res) => {
