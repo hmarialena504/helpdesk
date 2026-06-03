@@ -46,6 +46,7 @@ model User {
   createdTickets  Ticket[]  @relation("CreatedBy")
   comments        Comment[]
   teamMembers     TeamMember[]
+  attachments     Attachment[]
 
   @@map("users")
 }
@@ -99,6 +100,7 @@ model Ticket {
   team       Team?    @relation(fields: [teamId], references: [id])
   comments   Comment[]
   tags       TicketTag[]
+  attachments Attachment[] 
 
   @@map("tickets")
 }
@@ -143,4 +145,24 @@ model TicketTag {
 
   @@id([ticketId, tagId])
   @@map("ticket_tags")
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  filename  String                          // Original filename shown to users
+  key       String                          // S3 object key used to retrieve the file
+  url       String                          // Public URL to access the file
+  mimetype  String                          // File type e.g. image/png
+  size      Int                             // File size in bytes
+  createdAt DateTime @default(now())
+
+  // Foreign keys
+  ticketId  String
+  uploadedById String
+
+  // Relations
+  ticket     Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  uploadedBy User   @relation(fields: [uploadedById], references: [id])
+
+  @@map("attachments")
 }

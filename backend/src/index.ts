@@ -9,6 +9,8 @@ import authRoutes from './routes/authRoutes'
 import userRoutes from './routes/userRoutes'
 import reportsRoutes from './routes/reportsRoutes'
 import { initSocket } from './lib/socket'
+import { setupStorage } from './lib/setupStorage'
+import attachmentRoutes from './routes/attachmentRoutes'
 
 dotenv.config()
 
@@ -21,6 +23,9 @@ const httpServer = createServer(app)
 
 // Initialise Socket.IO on the HTTP server
 initSocket(httpServer)
+
+// Set up S3 storage bucket on startup
+setupStorage().catch(console.error)
 
 // ── Middleware ─────────────────────────────────────────────
 app.use(helmet())
@@ -41,6 +46,7 @@ app.get('/health', (req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+app.use('/api/tickets', attachmentRoutes)
 app.use('/api/tickets', ticketRoutes)
 app.use('/api/users', userRoutes) 
 app.use('/api/reports', reportsRoutes)

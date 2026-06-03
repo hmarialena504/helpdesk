@@ -15,6 +15,8 @@ import { useAuth } from '@/lib/authContext'
 import StatusBadge from '@/components/ui/StatusBadge'
 import PriorityBadge from '@/components/ui/PriorityBadge'
 import { useSocket } from '@/lib/useSocket'
+import AttachmentList from '@/components/ui/AttachmentList'
+import { Attachment } from '@/lib/attachmentService'
 
 export default function TicketDetailPage() {
   const { id } = useParams() as { id: string }
@@ -29,6 +31,7 @@ export default function TicketDetailPage() {
   const [isUpdating, setIsUpdating] = useState(false)
   const { socket } = useSocket()
   const [viewerCount, setViewerCount] = useState(0)
+  const [attachments, setAttachments] = useState<Attachment[]>([])
 
   useEffect(() => {
     const fetchTicket = async () => {
@@ -36,6 +39,7 @@ export default function TicketDetailPage() {
         const res = await getTicketById(id)
         setTicket(res.data)
         setComments((res.data as Ticket & { comments: Comment[] }).comments || [])
+        setAttachments((res.data as Ticket & { comments: Comment[], attachments: Attachment[] }).attachments || [])
       } catch {
         setError('Ticket not found')
       } finally {
@@ -267,6 +271,14 @@ export default function TicketDetailPage() {
               </form>
             </div>
           </div>
+
+          {/* Attachments */}
+          <AttachmentList
+            ticketId={id}
+            attachments={attachments}
+            onAttachmentsChange={setAttachments}
+          />
+          
         </div>
 
         {/* Sidebar — right column */}

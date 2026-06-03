@@ -117,6 +117,14 @@ export const getTicketById = async (
         tags: {
           include: { tag: true },
         },
+        attachments: {
+          include: {
+            uploadedBy: {
+              select: { id: true, name: true },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     })
 
