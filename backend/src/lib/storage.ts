@@ -54,12 +54,14 @@ export const uploadFile = async (
   )
 
   // Build the public URL
-  // For MinIO: http://localhost:9000/bucket/key
-  // For AWS S3: https://bucket.s3.region.amazonaws.com/key
-  const endpoint = process.env.S3_ENDPOINT || `https://s3.${process.env.S3_REGION}.amazonaws.com`
-  const url = `${endpoint}/${BUCKET}/${key}`
+  // For Cloudflare R2: use the public bucket URL
+  // For MinIO/AWS: construct from endpoint and bucket
+  const publicUrl = process.env.S3_PUBLIC_URL
+    ? `${process.env.S3_PUBLIC_URL}/${key}`
+    : `${process.env.S3_ENDPOINT}/${BUCKET}/${key}`
 
-  return { key, url, filename: originalFilename, mimetype, size: buffer.length }
+  return { key, url: publicUrl, filename: originalFilename, mimetype, size: buffer.length }
+  
 }
 
 // Delete a file from S3

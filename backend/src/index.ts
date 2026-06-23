@@ -28,10 +28,26 @@ initSocket(httpServer)
 // Set up S3 storage bucket on startup
 setupStorage().catch(console.error)
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'http://localhost:3000',
+]
+
+
+
+
+
 // ── Middleware ─────────────────────────────────────────────
 app.use(helmet())
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, curl)
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+    return callback(new Error('Not allowed by CORS'))
+  },
   credentials: true,
 }))
 app.use(express.json())
