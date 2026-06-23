@@ -16,7 +16,8 @@ import settingsRoutes from './routes/settingsRoutes'
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 4000
+const PORT =  parseInt(<string>process.env.PORT, 10)|| 4000
+const HOST = '0.0.0.0'
 
 // Create HTTP server manually so Socket.IO can attach to it
 // Previously Express managed this internally with app.listen()
@@ -78,7 +79,7 @@ app.use((req, res) => {
 app.use(errorHandler)
 
 // ── Start server ───────────────────────────────────────────
-httpServer.listen(PORT, '0.0.0.0', () => {
+httpServer.listen(PORT, HOST, () => {
   console.log(`🚀 Server running on http://0.0.0.0:${PORT}`)
   console.log(`⚡ Socket.IO ready`)
   console.log(`📋 Environment: ${process.env.NODE_ENV}`)
